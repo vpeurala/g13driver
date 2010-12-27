@@ -19,6 +19,8 @@ MODULE_VERSION("0.1");
 
 #define IRQ_CHANNEL 13
 
+static struct input_dev* g13_input_device; 
+
 static struct usb_device_id skel_table[] = {
     { USB_DEVICE(USB_VENDOR_ID, USB_PRODUCT_ID) },
     { }
@@ -42,8 +44,18 @@ static irqreturn_t g13_irq_handler(int irq, void *dev_id) {
 };
 
 static void in_complete(struct urb *urb) {
+    char* transfer_buffer_content;
+    u32 actual_length;
     printk("in_complete!\n");
     printk("status: %d\n", urb->status);
+    transfer_buffer_content = (char*) urb->transfer_buffer;
+    actual_length = urb->actual_length;
+    printk("content: %s\n", transfer_buffer_content);
+    printk("actual_length: %d\n", actual_length);
+    input_report_key(g13_input_device, KEY_A, 1);
+    input_report_key(g13_input_device, KEY_A, 0);
+    input_sync(g13_input_device);
+    usb_submit_urb(urb, GFP_ATOMIC);
 };
 
 static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id) {
@@ -63,8 +75,21 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
     __le16 wMaxPacketSize;
     void *in_transfer_buffer;
     int in_transfer_buffer_length;
+    int input_register_device_result;
     printk("probe, %lu\n", id->driver_info);
     printk("cur_altsetting: %d\n", desc.iInterface);
+    g13_input_device = input_allocate_device();
+    if (g13_input_device == NULL) {
+        printk("input_allocate_device failed.\n");
+    }
+    g13_input_device->name = "G13";
+    printk("debug 1\n");
+    g13_input_device->evbit[0] = BIT(EV_KEY);
+    printk("debug 2\n");
+    set_bit(KEY_A, g13_input_device->keybit);
+    printk("debug 3\n");
+    input_register_device_result = input_register_device(g13_input_device);
+    printk("input_register_device_result: %d\n", input_register_device_result);
     for (i = 0; i < desc.bNumEndpoints; i++) {
         endpoint = cur_altsetting->endpoint[i];
         endpoint_descriptor = endpoint.desc;
@@ -78,11 +103,11 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
                 bInterval = endpoint_descriptor.bInterval;
                 wMaxPacketSize = endpoint_descriptor.wMaxPacketSize;
                 in_pipe = usb_rcvintpipe(device, bEndpointAddress);
-                in_transfer_buffer = kmalloc(wMaxPacketSize, GFP_KERNEL);
+                in_transfer_buffer = kmalloc(wMaxPacketSize, GFP_ATOMIC);
                 in_transfer_buffer_length = wMaxPacketSize; 
-                urb = usb_alloc_urb(0, GFP_KERNEL);
+                urb = usb_alloc_urb(0, GFP_ATOMIC);
                 usb_fill_int_urb(urb, device, in_pipe, in_transfer_buffer, in_transfer_buffer_length, &in_complete, NULL, bInterval);
-                usb_submit_urb(urb, GFP_KERNEL);
+                usb_submit_urb(urb, GFP_ATOMIC);
             }
         } else if (usb_endpoint_dir_out(&endpoint_descriptor)) {
             printk("OUT endpoint %d, attributes %d\n", bEndpointAddress, bmAttributes);
@@ -112,6 +137,8 @@ static void skel_disconnect(struct usb_interface *intf) {
     printk("disconnect start\n");
     usb_deregister_dev(intf, &skel_class);
     free_irq(IRQ_CHANNEL, NULL);
+    input_unregister_device(g13_input_device);
+    input_free_device(g13_input_device);
     printk("disconnect successful.\n");
 }
 
