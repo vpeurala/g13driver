@@ -41,12 +41,9 @@ MODULE_DEVICE_TABLE(usb, skel_table);
 static void in_complete(struct urb *urb) {
     char* transfer_buffer_content;
     u32 actual_length;
-    printk("in_complete!\n");
-    printk("status: %d\n", urb->status);
     transfer_buffer_content = (char*) urb->transfer_buffer;
     actual_length = urb->actual_length;
-    printk("content: %s\n", transfer_buffer_content);
-    printk("actual_length: %d\n", actual_length);
+    /* FIXME VP 27.12.2010: Hardcoded A for every key */
     input_report_key(g13_input_device, KEY_A, 1);
     input_report_key(g13_input_device, KEY_A, 0);
     input_sync(g13_input_device);
@@ -70,30 +67,27 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
     void *in_transfer_buffer;
     int in_transfer_buffer_length;
     int input_register_device_result;
-    printk("probe, %lu\n", id->driver_info);
-    printk("cur_altsetting: %d\n", desc.iInterface);
     g13_input_device = input_allocate_device();
     if (g13_input_device == NULL) {
-        printk("input_allocate_device failed.\n");
+        printk("G13: input_allocate_device failed.\n");
+        return -1;
     }
     g13_input_device->name = "G13";
-    printk("debug 1\n");
     g13_input_device->evbit[0] = BIT(EV_KEY);
-    printk("debug 2\n");
     set_bit(KEY_A, g13_input_device->keybit);
-    printk("debug 3\n");
     input_register_device_result = input_register_device(g13_input_device);
-    printk("input_register_device_result: %d\n", input_register_device_result);
+    if (input_register_device_result) {
+        printk("G13: input_register_device failed: %d\n", input_register_device_result);
+        return input_register_device_result;
+    }
     for (i = 0; i < desc.bNumEndpoints; i++) {
         endpoint = cur_altsetting->endpoint[i];
         endpoint_descriptor = endpoint.desc;
         bEndpointAddress = endpoint_descriptor.bEndpointAddress;
         bmAttributes = endpoint_descriptor.bmAttributes;
         if (usb_endpoint_dir_in(&endpoint_descriptor)) {
-            printk("IN endpoint %d, attributes %d\n", bEndpointAddress, bmAttributes);
             /* We know that bmAttributes == USB_ENDPOINT_XFER_INT */
             if (usb_endpoint_xfer_int(&endpoint_descriptor)) {
-                printk("XFER_INT\n");
                 bInterval = endpoint_descriptor.bInterval;
                 wMaxPacketSize = endpoint_descriptor.wMaxPacketSize;
                 in_pipe = usb_rcvintpipe(device, bEndpointAddress);
@@ -104,37 +98,33 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
                 usb_submit_urb(urb, GFP_ATOMIC);
             }
         } else if (usb_endpoint_dir_out(&endpoint_descriptor)) {
-            printk("OUT endpoint %d, attributes %d\n", bEndpointAddress, bmAttributes);
             /* We know that bmAttributes == USB_ENDPOINT_XFER_INT */
             if (usb_endpoint_xfer_int(&endpoint_descriptor)) {
-                printk("XFER_INT\n");    
                 bInterval = endpoint_descriptor.bInterval;
+                /* TODO VP 27.12.2010: Implement output */
             }
         } else {
-            printk("BUG!!! Endpoint not IN nor OUT.\n");
+            printk("G13: Bug found! Endpoint not IN nor OUT.\n");
         } 
     }
     usb_register_dev_result = usb_register_dev(intf, &skel_class);
     if (usb_register_dev_result ) {
-        printk("Not able to get a minor for this device\n");
-        usb_set_intfdata(intf, NULL);
-        return -1;
+        printk("G13: usb_register_dev failed: %d\n", usb_register_dev_result);
+        return usb_register_dev_result;
     }
-    printk("usb_register_dev successful.\n");
+    printk("G13: Device registration successful.\n");
     return 0;
 }
 
 static void skel_disconnect(struct usb_interface *intf) {
     int minor = intf->minor;
-    printk("disconnect start\n");
     usb_deregister_dev(intf, &skel_class);
     input_unregister_device(g13_input_device);
     input_free_device(g13_input_device);
-    printk("disconnect successful.\n");
 }
 
 static struct usb_driver skel_driver = {
-    .name = "g13",
+    .name = "G13",
     .id_table = skel_table,
     .probe = skel_probe,
     .disconnect = skel_disconnect,
@@ -144,9 +134,9 @@ static int __init usb_skel_init(void) {
     int result;
     result = usb_register(&skel_driver);
     if (result) {
-        printk("usb_register failed. Error number %d\n", result);
+        printk("G13: usb_register failed. Error number %d.\n", result);
     } else {
-        printk("usb_register successful.\n");
+        printk("G13: usb_register successful.\n");
     }
     return result;
 }
