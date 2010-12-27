@@ -17,11 +17,9 @@ MODULE_VERSION("0.1");
 #define USB_VENDOR_ID 0x046D
 #define USB_PRODUCT_ID 0xC21C
 
-#define IRQ_CHANNEL 13
-
 static struct input_dev* g13_input_device; 
 
-static struct usb_device_id skel_table[] = {
+static struct usb_device_id g13_device_id[] = {
     { USB_DEVICE(USB_VENDOR_ID, USB_PRODUCT_ID) },
     { }
 };
@@ -30,15 +28,15 @@ static struct file_operations g13_fops = {
     .owner = THIS_MODULE,
 };
 
-static struct usb_class_driver skel_class = {
-    .name = "g13",
+static struct usb_class_driver g13_class = {
+    .name = "G13",
     .fops = &g13_fops,
     .minor_base = 13,
 };
 
-MODULE_DEVICE_TABLE(usb, skel_table);
+MODULE_DEVICE_TABLE(usb, g13_device_id);
 
-static void in_complete(struct urb *urb) {
+static void g13_urb_complete(struct urb *urb) {
     char* transfer_buffer_content;
     u32 actual_length;
     transfer_buffer_content = (char*) urb->transfer_buffer;
@@ -50,7 +48,7 @@ static void in_complete(struct urb *urb) {
     usb_submit_urb(urb, GFP_ATOMIC);
 };
 
-static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id) {
+static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id) {
     struct usb_device *device = interface_to_usbdev(intf);
     struct usb_host_interface *cur_altsetting = intf->cur_altsetting;
     struct usb_interface_descriptor desc = cur_altsetting->desc;
@@ -94,7 +92,7 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
                 in_transfer_buffer = kmalloc(wMaxPacketSize, GFP_ATOMIC);
                 in_transfer_buffer_length = wMaxPacketSize; 
                 urb = usb_alloc_urb(0, GFP_ATOMIC);
-                usb_fill_int_urb(urb, device, in_pipe, in_transfer_buffer, in_transfer_buffer_length, &in_complete, NULL, bInterval);
+                usb_fill_int_urb(urb, device, in_pipe, in_transfer_buffer, in_transfer_buffer_length, &g13_urb_complete, NULL, bInterval);
                 usb_submit_urb(urb, GFP_ATOMIC);
             }
         } else if (usb_endpoint_dir_out(&endpoint_descriptor)) {
@@ -107,7 +105,7 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
             printk("G13: Bug found! Endpoint not IN nor OUT.\n");
         } 
     }
-    usb_register_dev_result = usb_register_dev(intf, &skel_class);
+    usb_register_dev_result = usb_register_dev(intf, &g13_class);
     if (usb_register_dev_result ) {
         printk("G13: usb_register_dev failed: %d\n", usb_register_dev_result);
         return usb_register_dev_result;
@@ -116,23 +114,22 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
     return 0;
 }
 
-static void skel_disconnect(struct usb_interface *intf) {
-    int minor = intf->minor;
-    usb_deregister_dev(intf, &skel_class);
+static void g13_disconnect(struct usb_interface *intf) {
+    usb_deregister_dev(intf, &g13_class);
     input_unregister_device(g13_input_device);
     input_free_device(g13_input_device);
 }
 
-static struct usb_driver skel_driver = {
+static struct usb_driver g13_driver = {
     .name = "G13",
-    .id_table = skel_table,
-    .probe = skel_probe,
-    .disconnect = skel_disconnect,
+    .id_table = g13_device_id,
+    .probe = g13_probe,
+    .disconnect = g13_disconnect,
 };
 
-static int __init usb_skel_init(void) {
+static int __init g13_init(void) {
     int result;
-    result = usb_register(&skel_driver);
+    result = usb_register(&g13_driver);
     if (result) {
         printk("G13: usb_register failed. Error number %d.\n", result);
     } else {
@@ -141,9 +138,10 @@ static int __init usb_skel_init(void) {
     return result;
 }
 
-static void __exit usb_skel_exit(void) {
-    usb_deregister(&skel_driver);
+static void __exit g13_exit(void) {
+    usb_deregister(&g13_driver);
 }
 
-module_init(usb_skel_init);
-module_exit(usb_skel_exit);
+module_init(g13_init);
+module_exit(g13_exit);
+
