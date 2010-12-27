@@ -1,0 +1,6 @@
+Linux driver for Logitech G13.
+
+This is my first attempt ever at writing a Linux device driver, so feel free to criticize my code if you come up with improvements.
+
+Not guaranteed to work on anybody else's machine except mine (yet). Work in progress.
+
