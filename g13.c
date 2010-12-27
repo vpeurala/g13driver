@@ -38,11 +38,6 @@ static struct usb_class_driver skel_class = {
 
 MODULE_DEVICE_TABLE(usb, skel_table);
 
-static irqreturn_t g13_irq_handler(int irq, void *dev_id) {
-    printk("Interrupt!\n");
-    return IRQ_HANDLED;
-};
-
 static void in_complete(struct urb *urb) {
     char* transfer_buffer_content;
     u32 actual_length;
@@ -63,7 +58,6 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
     struct usb_host_interface *cur_altsetting = intf->cur_altsetting;
     struct usb_interface_descriptor desc = cur_altsetting->desc;
     int usb_register_dev_result; 
-    int request_irq_result;
     int i;
     struct usb_host_endpoint endpoint;
     struct usb_endpoint_descriptor endpoint_descriptor;
@@ -127,8 +121,6 @@ static int skel_probe(struct usb_interface *intf, const struct usb_device_id *id
         return -1;
     }
     printk("usb_register_dev successful.\n");
-    request_irq_result = request_irq(IRQ_CHANNEL, &g13_irq_handler, IRQF_SAMPLE_RANDOM, "g13", NULL); 
-    printk("request_irq_result: %d\n", request_irq_result);
     return 0;
 }
 
@@ -136,7 +128,6 @@ static void skel_disconnect(struct usb_interface *intf) {
     int minor = intf->minor;
     printk("disconnect start\n");
     usb_deregister_dev(intf, &skel_class);
-    free_irq(IRQ_CHANNEL, NULL);
     input_unregister_device(g13_input_device);
     input_free_device(g13_input_device);
     printk("disconnect successful.\n");
