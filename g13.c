@@ -48,6 +48,7 @@ static void g13_urb_complete(struct urb *urb) {
     usb_submit_urb(urb, GFP_ATOMIC);
 };
 
+/* FIXME VP 27.12.2010: Really long method */
 static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id) {
     struct usb_device *device = interface_to_usbdev(intf);
     struct usb_host_interface *cur_altsetting = intf->cur_altsetting;
