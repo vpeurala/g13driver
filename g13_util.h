@@ -15,6 +15,7 @@
 #define G13_PRINT(...) printf(__VA_ARGS__)
 #define u64 unsigned long long
 #define u32 unsigned int
+#define u16 unsigned short
 #define u8  unsigned char
 #else /* KERNELBUILD */
 /* Kernel */
@@ -24,6 +25,14 @@
 #define G13_ASSERT(condition) if (!condition) printk(KERN_CRIT "G13: Assert failed!\n") 
 #define G13_PRINT(...) printk(__VA_ARGS__)
 #endif /* KERNELBUILD */
+
+typedef struct {
+    u8 joystick_x;
+    u8 joystick_y;
+    u8 joystick_buttons;
+    u32 keys;
+    u16 specials;
+} G13State;
 
 const u8* format_string_of_64_bits(const u8* input);
 

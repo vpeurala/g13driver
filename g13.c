@@ -61,14 +61,11 @@ static void g13_urb_complete(struct urb *urb) {
     char transfer_buffer_display[] = "                                                                "; /* 64 */
     transfer_buffer_content = (unsigned char*) urb->transfer_buffer;
     printk("transfer: %s", eight_bytes_to_bit_string(transfer_buffer_content));
-    for (loop_index = 0; loop_index < 64; loop_index++) {
-        if (transfer_buffer_value & (1 << loop_index)) {
-            transfer_buffer_display[loop_index] = 'x';
-        }
-    }
     actual_length = urb->actual_length;
     /* actual_length is always 8 */
-    unknown_field = transfer_buffer_content[0];
+    u8* nibbles = eight_octets_to_16_nibbles(transfer_buffer_content);
+    u8 unknown_nibble_1 = nibbles[0];
+    u8 unknown_nibble_2 = nibbles[1];
     joystick_x = transfer_buffer_content[1];
     joystick_y = transfer_buffer_content[2];
     g_1_8 = transfer_buffer_content[3];
