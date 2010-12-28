@@ -60,17 +60,7 @@ static void g13_urb_complete(struct urb *urb) {
     char joystick_display[] = "   "; /* 3 */
     char transfer_buffer_display[] = "                                                                "; /* 64 */
     transfer_buffer_content = (unsigned char*) urb->transfer_buffer;
-    printk("%s", eight_bytes_to_bit_string(transfer_buffer_content));
-    for (loop_index = 0; loop_index < 8; loop_index++) {
-        current_byte = transfer_buffer_content[loop_index];
-        printk("loop_index: %d\n", loop_index);
-        printk("current_byte: %02x\n", current_byte);
-        current_byte_shift = current_byte;
-        current_byte_shift = current_byte_shift << ((loop_index - 7) * 8);
-        printk("current_byte_shift: %08llu\n", current_byte_shift);
-        transfer_buffer_value = transfer_buffer_value | current_byte_shift;
-        printk("transfer_buffer_value: %llu\n", transfer_buffer_value);
-    }
+    printk("transfer: %s", eight_bytes_to_bit_string(transfer_buffer_content));
     for (loop_index = 0; loop_index < 64; loop_index++) {
         if (transfer_buffer_value & (1 << loop_index)) {
             transfer_buffer_display[loop_index] = 'x';
@@ -109,7 +99,6 @@ static void g13_urb_complete(struct urb *urb) {
     printk("joystick_display: %s ", joystick_display);
     printk("mode_buttons: %02x", transfer_buffer_content[6]);
     */
-    printk("transfer: %s", transfer_buffer_display);
     printk("\n");
     /* FIXME VP 27.12.2010: Hardcoded A for every key */
     /*

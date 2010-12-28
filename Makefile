@@ -11,7 +11,7 @@ else
         KCPPFLAGS := -DKERNELBUILD=1
 endif
 
-default:
+default: clean
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
 install:
@@ -20,10 +20,14 @@ install:
 	insmod g13.ko
 
 clean:
-	rm -rf *.o *.ko *.mod.c .*.cmd modules.order Module.symvers .tmp_versions test
+	rm -rf *.o *.ko *.mod.c *.c.* .*.cmd .*.c.* modules.order Module.symvers .tmp_versions test
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
 
-test:
-	gcc -o test -Wall -ansi RunTests.c CuTest.c g13Test.c g13_util.c
+test-build: clean
+	gcc -std=c99 -pedantic -g -Wall -Wstrict-prototypes -o test RunTests.c CuTest.c g13Test.c g13_util.c
+
+test-run: test-build
 	./test
+
+test: test-build test-run
  
