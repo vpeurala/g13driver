@@ -9,6 +9,8 @@
 #include <linux/usb.h>
 #include <linux/usb/ch9.h>
 
+#include "g13_util.c"
+
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Ville Peurala <ville.peurala@gmail.com>");
 MODULE_DESCRIPTION("Driver for Logitech G13.");
@@ -36,22 +38,6 @@ static struct usb_class_driver g13_class = {
 
 MODULE_DEVICE_TABLE(usb, g13_device_id);
 
-const char* eight_bytes_to_string(unsigned char* buffer) {
-
-}
-
-u64 convert_8_bytes_to_u64(u8* buffer) {
-    u8 i;
-    u64 result = 0;
-    u64 shifting_bitset = 0; 
-    for (i = 0; i < 8; i++) {
-        shifting_bitset = buffer[i];
-        shifting_bitset = shifting_bitset << (7 - i);
-        result = result | buffer[i]; 
-    }
-    return result;
-};
-
 static void g13_urb_complete(struct urb *urb) {
     u8* transfer_buffer_content;
     u32 actual_length;
@@ -74,6 +60,7 @@ static void g13_urb_complete(struct urb *urb) {
     char joystick_display[] = "   "; /* 3 */
     char transfer_buffer_display[] = "                                                                "; /* 64 */
     transfer_buffer_content = (unsigned char*) urb->transfer_buffer;
+    printk("%s", eight_bytes_to_bit_string(transfer_buffer_content));
     for (loop_index = 0; loop_index < 8; loop_index++) {
         current_byte = transfer_buffer_content[loop_index];
         printk("loop_index: %d\n", loop_index);

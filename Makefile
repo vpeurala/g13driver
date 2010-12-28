@@ -1,12 +1,14 @@
 # If KERNELRELEASE is defined, we've been invoked from the
 # kernel build system and can use its language.
 ifneq ($(KERNELRELEASE),)
-	obj-m := g13.o
+	obj-m += g13.o
+#        obj-m += g13_util.o
 # Otherwise we were called directly from the command
 # line; invoke the kernel build system.
 else
 	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 	PWD := $(shell pwd)
+        KCPPFLAGS := -DKERNELBUILD=1
 endif
 
 default:
@@ -18,7 +20,8 @@ install:
 	insmod g13.ko
 
 clean:
-	rm -rf *.o *.ko *.mod.c .*.cmd modules.order Module.symvers .tmp_versions
+	rm -rf *.o *.ko *.mod.c .*.cmd modules.order Module.symvers .tmp_versions test
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
 
 test:
 	gcc -o test -Wall -ansi RunTests.c CuTest.c g13Test.c g13_util.c
