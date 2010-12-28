@@ -8,4 +8,5 @@ Module.symvers
 *.swp
 *.gch
 a.out
+test
 

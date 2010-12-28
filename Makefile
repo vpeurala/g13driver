@@ -21,4 +21,6 @@ clean:
 	rm -rf *.o *.ko *.mod.c .*.cmd modules.order Module.symvers .tmp_versions
 
 test:
-	gcc -o RunTests.c RunTests.c
+	gcc -o test -Wall -ansi RunTests.c CuTest.c g13Test.c g13_util.c
+	./test
+ 
