@@ -53,4 +53,23 @@ const u8* eight_bytes_to_bit_string(const u8* input) {
     return format_string_of_64_bits(u64_to_binary_string(eight_bytes_to_u64(input)));
 }
 
+const u8* eight_octets_to_16_nibbles(const u8* input) {
+    u32 input_size = 8;
+    u32 output_size = input_size * 2;
+    u32 i;
+    u8 octet;
+    u8 high_nibble;
+    u8 low_nibble;
+    u8* output;
+    output = G13_ALLOC(16 * sizeof(u8));
+    for (i = 0; i < input_size; i++) {
+        octet = input[i];
+        high_nibble = octet >> 4;
+        low_nibble = octet & 0xf;
+        output[i * 2] = high_nibble;
+        output[i * 2 + 1] = low_nibble;
+    }
+    return output;
+}
+
 

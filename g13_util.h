@@ -33,5 +33,7 @@ u64 eight_bytes_to_u64(const u8* input);
 
 const u8* eight_bytes_to_bit_string(const u8* input);
 
+const u8* eight_octets_to_16_nibbles(const u8* input);
+
 #endif /* G13_UTIL_H */
 
