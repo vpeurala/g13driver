@@ -5,4 +5,7 @@
 modules.order
 Module.symvers
 .tmp_versions
+*.swp
+*.gch
+a.out
 

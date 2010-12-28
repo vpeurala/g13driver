@@ -12,11 +12,13 @@ endif
 default:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
-install: default
-	sudo rmmod usbhid || true
-	sudo rmmod g13 || true
-	sudo insmod g13.ko
+install:
+	rmmod usbhid || true
+	rmmod g13 || true
+	insmod g13.ko
 
 clean:
 	rm -rf *.o *.ko *.mod.c .*.cmd modules.order Module.symvers .tmp_versions
 
+test:
+	gcc -o RunTests.c RunTests.c

@@ -36,22 +36,108 @@ static struct usb_class_driver g13_class = {
 
 MODULE_DEVICE_TABLE(usb, g13_device_id);
 
+const char* eight_bytes_to_string(unsigned char* buffer) {
+
+}
+
+u64 convert_8_bytes_to_u64(u8* buffer) {
+    u8 i;
+    u64 result = 0;
+    u64 shifting_bitset = 0; 
+    for (i = 0; i < 8; i++) {
+        shifting_bitset = buffer[i];
+        shifting_bitset = shifting_bitset << (7 - i);
+        result = result | buffer[i]; 
+    }
+    return result;
+};
+
 static void g13_urb_complete(struct urb *urb) {
-    char* transfer_buffer_content;
+    u8* transfer_buffer_content;
     u32 actual_length;
-    transfer_buffer_content = (char*) urb->transfer_buffer;
+    u16 loop_index;
+    u64 transfer_buffer_value = 0x000;
+    u8 current_byte;
+    u64 current_byte_shift;
+    /* value of unknown_field is always 1 */
+    u8 unknown_field;
+    u8 joystick_x;
+    u8 joystick_y;
+    u8 g_1_8;
+    u8 g_9_16;
+    u8 g_17_22;
+    u8 mode_buttons;
+    u8 joystick_buttons;
+    u32 keys = 0x00;
+    char keys_display[] = "                      "; /* 22 */
+    char mode_display[] = "         "; /* 9 */
+    char joystick_display[] = "   "; /* 3 */
+    char transfer_buffer_display[] = "                                                                "; /* 64 */
+    transfer_buffer_content = (unsigned char*) urb->transfer_buffer;
+    for (loop_index = 0; loop_index < 8; loop_index++) {
+        current_byte = transfer_buffer_content[loop_index];
+        printk("loop_index: %d\n", loop_index);
+        printk("current_byte: %02x\n", current_byte);
+        current_byte_shift = current_byte;
+        current_byte_shift = current_byte_shift << ((loop_index - 7) * 8);
+        printk("current_byte_shift: %08llu\n", current_byte_shift);
+        transfer_buffer_value = transfer_buffer_value | current_byte_shift;
+        printk("transfer_buffer_value: %llu\n", transfer_buffer_value);
+    }
+    for (loop_index = 0; loop_index < 64; loop_index++) {
+        if (transfer_buffer_value & (1 << loop_index)) {
+            transfer_buffer_display[loop_index] = 'x';
+        }
+    }
     actual_length = urb->actual_length;
+    /* actual_length is always 8 */
+    unknown_field = transfer_buffer_content[0];
+    joystick_x = transfer_buffer_content[1];
+    joystick_y = transfer_buffer_content[2];
+    g_1_8 = transfer_buffer_content[3];
+    g_9_16 = transfer_buffer_content[4];
+    g_17_22 = transfer_buffer_content[5] - 0x80;
+    mode_buttons = transfer_buffer_content[6];
+    joystick_buttons = transfer_buffer_content[7] & 0x0f;
+    /* --- */
+    keys = keys | g_1_8 | (g_9_16 << 8) | (g_17_22 << 16);
+    for (loop_index = 0; loop_index < 22; loop_index++) {
+        if (keys & (1 << loop_index)) {
+            keys_display[loop_index] = '1';
+        }
+    }
+    for (loop_index = 0; loop_index < 9; loop_index++) {
+        if (mode_buttons & (1 << loop_index)) {
+            mode_display[loop_index] = '1';
+        }
+    }
+    for (loop_index = 0; loop_index < 3; loop_index++) {
+        if (joystick_buttons & (2 << loop_index)) {
+            joystick_display[loop_index] = '1'; 
+        }
+    }
+    /*
+    printk("keys_display: %s ", keys_display);
+    printk("mode_display: %s ", mode_display);
+    printk("joystick_display: %s ", joystick_display);
+    printk("mode_buttons: %02x", transfer_buffer_content[6]);
+    */
+    printk("transfer: %s", transfer_buffer_display);
+    printk("\n");
     /* FIXME VP 27.12.2010: Hardcoded A for every key */
+    /*
     input_report_key(g13_input_device, KEY_A, 1);
     input_report_key(g13_input_device, KEY_A, 0);
     input_sync(g13_input_device);
+    */
+    memset(urb->transfer_buffer, '\0', urb->transfer_buffer_length);
     usb_submit_urb(urb, GFP_ATOMIC);
 };
 
 /* FIXME VP 27.12.2010: Really long method */
 static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id) {
-    struct usb_device *device = interface_to_usbdev(intf);
-    struct usb_host_interface *cur_altsetting = intf->cur_altsetting;
+    struct usb_device* device = interface_to_usbdev(intf);
+    struct usb_host_interface* cur_altsetting = intf->cur_altsetting;
     struct usb_interface_descriptor desc = cur_altsetting->desc;
     int usb_register_dev_result; 
     int i;
@@ -60,11 +146,11 @@ static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id)
     __u8 bEndpointAddress;
     __u8 bmAttributes;
     __u8 bInterval;
-    struct urb *urb;
+    struct urb* urb;
     unsigned int in_pipe;
     __le16 wMaxPacketSize;
-    void *in_transfer_buffer;
-    int in_transfer_buffer_length;
+    unsigned char* in_transfer_buffer;
+    unsigned int in_transfer_buffer_length;
     int input_register_device_result;
     g13_input_device = input_allocate_device();
     if (g13_input_device == NULL) {
@@ -90,7 +176,7 @@ static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id)
                 bInterval = endpoint_descriptor.bInterval;
                 wMaxPacketSize = endpoint_descriptor.wMaxPacketSize;
                 in_pipe = usb_rcvintpipe(device, bEndpointAddress);
-                in_transfer_buffer = kmalloc(wMaxPacketSize, GFP_ATOMIC);
+                in_transfer_buffer = kzalloc((sizeof (unsigned char)) * wMaxPacketSize, GFP_ATOMIC);
                 in_transfer_buffer_length = wMaxPacketSize; 
                 urb = usb_alloc_urb(0, GFP_ATOMIC);
                 usb_fill_int_urb(urb, device, in_pipe, in_transfer_buffer, in_transfer_buffer_length, &g13_urb_complete, NULL, bInterval);
