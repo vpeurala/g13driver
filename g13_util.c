@@ -6,7 +6,7 @@ const u8* format_string_of_64_bits(const u8* input) {
     u32 output_index = 0;
     u32 input_length = 64;
     u32 output_length = input_length + (input_length / 8) + 1;
-    output = (u8*) G13_ALLOC(output_length * sizeof(u8));
+    output = G13_ALLOC(output_length * sizeof(u8));
     for (input_index = 0; input_index < input_length; input_index++) {
         output[output_index] = input[input_index];
         output_index++;
@@ -32,7 +32,6 @@ const u8* u64_to_binary_string(const u64 input) {
          output[output_index] = bit_value;
          remainder = remainder / 2;
     }
-    G13_PRINT("u64_to_binary_string output size: %lu\n", sizeof(output));
     return output;
 }
 
