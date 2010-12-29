@@ -2,17 +2,18 @@
 # kernel build system and can use its language.
 ifneq ($(KERNELRELEASE),)
 	obj-m += g13.o
-#        obj-m += g13_util.o
 # Otherwise we were called directly from the command
 # line; invoke the kernel build system.
 else
 	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 	PWD := $(shell pwd)
-        KCPPFLAGS := -DKERNELBUILD=1
+	KCPPFLAGS := -DKERNELBUILD=1
 endif
 
-default: clean
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+default: kernel-build
+
+kernel-build: clean
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) KCPPFLAGS=$(KCPPFLAGS) modules
 
 install:
 	rmmod usbhid || true
