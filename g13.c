@@ -1,3 +1,5 @@
+#include <linux/bitops.h>
+#include <linux/bitmap.h>
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/input.h>
@@ -39,70 +41,38 @@ static struct usb_class_driver g13_class = {
 MODULE_DEVICE_TABLE(usb, g13_device_id);
 
 static void g13_urb_complete(struct urb *urb) {
-    u8* transfer_buffer_content;
-    u32 actual_length;
-    u16 loop_index;
-    u64 transfer_buffer_value = 0x000;
-    u8 current_byte;
-    u64 current_byte_shift;
-    /* value of unknown_field is always 1 */
-    u8 unknown_field;
-    u8 joystick_x;
-    u8 joystick_y;
-    u8 g_1_8;
-    u8 g_9_16;
-    u8 g_17_22;
-    u8 mode_buttons;
-    u8 joystick_buttons;
-    u32 keys = 0x00;
-    char keys_display[] = "                      "; /* 22 */
-    char mode_display[] = "         "; /* 9 */
-    char joystick_display[] = "   "; /* 3 */
-    char transfer_buffer_display[] = "                                                                "; /* 64 */
-    transfer_buffer_content = (unsigned char*) urb->transfer_buffer;
-    printk("transfer: %s", eight_bytes_to_bit_string(transfer_buffer_content));
-    actual_length = urb->actual_length;
-    /* actual_length is always 8 */
-    u8* nibbles = eight_octets_to_16_nibbles(transfer_buffer_content);
-    u8 unknown_nibble_1 = nibbles[0];
-    u8 unknown_nibble_2 = nibbles[1];
-    joystick_x = transfer_buffer_content[1];
-    joystick_y = transfer_buffer_content[2];
-    g_1_8 = transfer_buffer_content[3];
-    g_9_16 = transfer_buffer_content[4];
-    g_17_22 = transfer_buffer_content[5] - 0x80;
-    mode_buttons = transfer_buffer_content[6];
-    joystick_buttons = transfer_buffer_content[7] & 0x0f;
-    /* --- */
-    keys = keys | g_1_8 | (g_9_16 << 8) | (g_17_22 << 16);
-    for (loop_index = 0; loop_index < 22; loop_index++) {
-        if (keys & (1 << loop_index)) {
-            keys_display[loop_index] = '1';
-        }
-    }
-    for (loop_index = 0; loop_index < 9; loop_index++) {
-        if (mode_buttons & (1 << loop_index)) {
-            mode_display[loop_index] = '1';
-        }
-    }
-    for (loop_index = 0; loop_index < 3; loop_index++) {
-        if (joystick_buttons & (2 << loop_index)) {
-            joystick_display[loop_index] = '1'; 
-        }
-    }
-    /*
-    printk("keys_display: %s ", keys_display);
-    printk("mode_display: %s ", mode_display);
-    printk("joystick_display: %s ", joystick_display);
-    printk("mode_buttons: %02x", transfer_buffer_content[6]);
-    */
+    const u8* transfer_buffer_content = (unsigned char*) urb->transfer_buffer;
+    /* actual_length is always 8 with G13 input channel */
+    const u32 actual_length = urb->actual_length;
+    int bm_index = 0;
+    int safety_limit_index = 0;
+    int bitmap_parse_result;
+    int i;
+    DECLARE_BITMAP(input_bitmap, 64);
     printk("\n");
+    for (i = 0; i < actual_length; i++) {
+        printk("%u ", transfer_buffer_content[i]);
+    }
+    printk("\n");
+    bitmap_parse_result = bitmap_parse(transfer_buffer_content, actual_length, input_bitmap, 64);
+    printk("transfer: %s\n", eight_bytes_to_bit_string(transfer_buffer_content));
+    printk("bitmap_parse_result: %d\n", bitmap_parse_result);
+    if (test_bit(31, input_bitmap)) {
+        printk("g1 pressed\n");
+    }
+    while (safety_limit_index < 10 && bm_index < 64) {
+        bm_index = find_first_bit(input_bitmap, bm_index);
+        //printk("set bit: %d\n", bm_index); 
+        safety_limit_index++;
+        bm_index++;
+    }
     /* FIXME VP 27.12.2010: Hardcoded A for every key */
     /*
     input_report_key(g13_input_device, KEY_A, 1);
     input_report_key(g13_input_device, KEY_A, 0);
     input_sync(g13_input_device);
     */
+    /* TODO VP 30.12.2010: Do we actually need this memset? */
     memset(urb->transfer_buffer, '\0', urb->transfer_buffer_length);
     usb_submit_urb(urb, GFP_ATOMIC);
 };
@@ -132,7 +102,28 @@ static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id)
     }
     g13_input_device->name = "G13";
     g13_input_device->evbit[0] = BIT(EV_KEY);
-    set_bit(KEY_A, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY1, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY2, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY3, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY4, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY5, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY6, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY7, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY8, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY9, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY10, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY11, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY12, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY13, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY14, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY15, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY16, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY17, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY18, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY19, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY20, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY21, g13_input_device->keybit);
+    set_bit(BTN_TRIGGER_HAPPY22, g13_input_device->keybit);
     input_register_device_result = input_register_device(g13_input_device);
     if (input_register_device_result) {
         printk("G13: input_register_device failed: %d\n", input_register_device_result);
