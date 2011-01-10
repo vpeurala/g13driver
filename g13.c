@@ -21,6 +21,22 @@ MODULE_VERSION("0.1");
 #define USB_VENDOR_ID 0x046D
 #define USB_PRODUCT_ID 0xC21C
 
+#define REGISTER_BUTTON(index) g13_input_device->keybit[BIT_WORD(BTN_TRIGGER_HAPPY ## index)] = BIT_MASK(BTN_TRIGGER_HAPPY ## index);
+
+#ifndef REGISTER_BUTTON
+#define REPORT_BUTTON(button_index, bit_index) \
+    if (test_bit(bit_index, input_bitmap)) { \
+        printk("g%i pressed\n", button_index); \
+        input_report_key(g13_input_device, BTN_TRIGGER_HAPPY ## button_index, 1); \
+    } else { \
+        printk("g%i released\n", button_index); \
+        input_report_key(g13_input_device, BTN_TRIGGER_HAPPY ## button_index, 0); \
+    }
+#endif
+
+#define REPORT_BUTTON(button_index, bit_index) \
+    printk("%i", test_bit(bit_index, input_bitmap));
+
 static struct input_dev* g13_input_device; 
 
 static struct usb_device_id g13_device_id[] = {
@@ -59,23 +75,72 @@ static void g13_urb_complete(struct urb *urb) {
     printk("sprintf_result: %d\n", sprintf_result);
     printk("hex_string: %s\n", hex_string);
     printk("\n");
-    bitmap_parse_result = bitmap_parse(hex_string, actual_length, input_bitmap, 64);
+    bitmap_parse_result = bitmap_parse(hex_string, 33, &input_bitmap, 64);
     printk("transfer: %s\n", eight_bytes_to_bit_string(transfer_buffer_content));
     printk("bitmap_parse_result: %d\n", bitmap_parse_result);
-    if (test_bit(0, input_bitmap)) {
-        printk("g1 pressed\n");
-        input_report_key(g13_input_device, KEY_A, 1);
-    } else {
-        printk("g1 released\n");
-        input_report_key(g13_input_device, KEY_A, 0);
-    }
-    if (test_bit(1, input_bitmap)) {
-        printk("g2 pressed\n");
-        input_report_key(g13_input_device, KEY_S, 1);
-    } else {
-        printk("g2 released\n");
-        input_report_key(g13_input_device, KEY_S, 0);
-    }
+    REPORT_BUTTON(1, 1-1);
+    REPORT_BUTTON(2, 2-1);
+    REPORT_BUTTON(3, 3-1);
+    REPORT_BUTTON(4, 4-1);
+    REPORT_BUTTON(5, 5-1);
+    REPORT_BUTTON(6, 6-1);
+    REPORT_BUTTON(7, 7-1);
+    REPORT_BUTTON(8, 8-1);
+    REPORT_BUTTON(9, 9-1);
+    REPORT_BUTTON(10, 10-1);
+    REPORT_BUTTON(11, 11-1);
+    REPORT_BUTTON(12, 12-1);
+    REPORT_BUTTON(13, 13-1);
+    REPORT_BUTTON(14, 14-1);
+    REPORT_BUTTON(15, 15-1);
+    REPORT_BUTTON(16, 16-1);
+    REPORT_BUTTON(17, 17-1);
+    REPORT_BUTTON(18, 18-1);
+    REPORT_BUTTON(19, 19-1);
+    REPORT_BUTTON(20, 20-1);
+    REPORT_BUTTON(21, 21-1);
+    REPORT_BUTTON(22, 22-1);
+    REPORT_BUTTON(23, 23-1);
+    REPORT_BUTTON(24, 24-1);
+    REPORT_BUTTON(25, 25-1);
+    REPORT_BUTTON(26, 26-1);
+    REPORT_BUTTON(27, 27-1);
+    REPORT_BUTTON(28, 28-1);
+    REPORT_BUTTON(29, 29-1);
+    REPORT_BUTTON(30, 30-1);
+    REPORT_BUTTON(31, 31-1);
+    REPORT_BUTTON(32, 32-1);
+    REPORT_BUTTON(33, 33-1);
+    REPORT_BUTTON(34, 34-1);
+    REPORT_BUTTON(35, 35-1);
+    REPORT_BUTTON(36, 36-1);
+    REPORT_BUTTON(37, 37-1);
+    REPORT_BUTTON(38, 38-1);
+    REPORT_BUTTON(39, 39-1);
+    REPORT_BUTTON(40, 40-1);
+    REPORT_BUTTON(41, 41-1);
+    REPORT_BUTTON(42, 42-1);
+    REPORT_BUTTON(43, 43-1);
+    REPORT_BUTTON(44, 44-1);
+    REPORT_BUTTON(45, 45-1);
+    REPORT_BUTTON(46, 46-1);
+    REPORT_BUTTON(47, 47-1);
+    REPORT_BUTTON(48, 48-1);
+    REPORT_BUTTON(49, 49-1);
+    REPORT_BUTTON(50, 50-1);
+    REPORT_BUTTON(51, 51-1);
+    REPORT_BUTTON(52, 52-1);
+    REPORT_BUTTON(53, 53-1);
+    REPORT_BUTTON(54, 54-1);
+    REPORT_BUTTON(55, 55-1);
+    REPORT_BUTTON(56, 56-1);
+    REPORT_BUTTON(57, 57-1);
+    REPORT_BUTTON(58, 58-1);
+    REPORT_BUTTON(59, 59-1);
+    REPORT_BUTTON(60, 60-1);
+    REPORT_BUTTON(61, 61-1);
+    REPORT_BUTTON(62, 62-1);
+    REPORT_BUTTON(63, 63-1);
     input_sync(g13_input_device);
     /* FIXME VP 27.12.2010: Hardcoded A for every key */
     /*
@@ -112,31 +177,29 @@ static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id)
         return -1;
     }
     g13_input_device->name = "G13";
-    g13_input_device->evbit[0] = BIT(EV_KEY);
-    set_bit(BTN_TRIGGER_HAPPY1, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY2, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY3, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY4, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY5, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY6, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY7, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY8, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY9, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY10, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY11, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY12, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY13, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY14, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY15, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY16, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY17, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY18, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY19, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY20, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY21, g13_input_device->keybit);
-    set_bit(BTN_TRIGGER_HAPPY22, g13_input_device->keybit);
-    set_bit(KEY_A, g13_input_device->keybit);
-    set_bit(KEY_S, g13_input_device->keybit);
+    g13_input_device->evbit[0] = BIT_MASK(EV_KEY);
+    REGISTER_BUTTON(1);
+    REGISTER_BUTTON(2);
+    REGISTER_BUTTON(3);
+    REGISTER_BUTTON(4);
+    REGISTER_BUTTON(5);
+    REGISTER_BUTTON(6);
+    REGISTER_BUTTON(7);
+    REGISTER_BUTTON(8);
+    REGISTER_BUTTON(9);
+    REGISTER_BUTTON(10);
+    REGISTER_BUTTON(11);
+    REGISTER_BUTTON(12);
+    REGISTER_BUTTON(13);
+    REGISTER_BUTTON(14);
+    REGISTER_BUTTON(15);
+    REGISTER_BUTTON(16);
+    REGISTER_BUTTON(17);
+    REGISTER_BUTTON(18);
+    REGISTER_BUTTON(19);
+    REGISTER_BUTTON(20);
+    REGISTER_BUTTON(21);
+    REGISTER_BUTTON(22);
     input_register_device_result = input_register_device(g13_input_device);
     if (input_register_device_result) {
         printk("G13: input_register_device failed: %d\n", input_register_device_result);
