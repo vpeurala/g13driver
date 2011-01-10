@@ -47,25 +47,36 @@ static void g13_urb_complete(struct urb *urb) {
     int bm_index = 0;
     int safety_limit_index = 0;
     int bitmap_parse_result;
+    int sprintf_result;
     int i;
+    char hex_string[16];
     DECLARE_BITMAP(input_bitmap, 64);
     printk("\n");
     for (i = 0; i < actual_length; i++) {
-        printk("%u ", transfer_buffer_content[i]);
+        printk("%x ", transfer_buffer_content[i]);
     }
+    sprintf_result = sprintf(hex_string, "%02x%02x%02x%02x,%02x%02x%02x%02x", transfer_buffer_content[0], transfer_buffer_content[1], transfer_buffer_content[2], transfer_buffer_content[3], transfer_buffer_content[4], transfer_buffer_content[5], transfer_buffer_content[6], transfer_buffer_content[7]); 
+    printk("sprintf_result: %d\n", sprintf_result);
+    printk("hex_string: %s\n", hex_string);
     printk("\n");
-    bitmap_parse_result = bitmap_parse(transfer_buffer_content, actual_length, input_bitmap, 64);
+    bitmap_parse_result = bitmap_parse(hex_string, actual_length, input_bitmap, 64);
     printk("transfer: %s\n", eight_bytes_to_bit_string(transfer_buffer_content));
     printk("bitmap_parse_result: %d\n", bitmap_parse_result);
-    if (test_bit(31, input_bitmap)) {
+    if (test_bit(0, input_bitmap)) {
         printk("g1 pressed\n");
+        input_report_key(g13_input_device, KEY_A, 1);
+    } else {
+        printk("g1 released\n");
+        input_report_key(g13_input_device, KEY_A, 0);
     }
-    while (safety_limit_index < 10 && bm_index < 64) {
-        bm_index = find_first_bit(input_bitmap, bm_index);
-        //printk("set bit: %d\n", bm_index); 
-        safety_limit_index++;
-        bm_index++;
+    if (test_bit(1, input_bitmap)) {
+        printk("g2 pressed\n");
+        input_report_key(g13_input_device, KEY_S, 1);
+    } else {
+        printk("g2 released\n");
+        input_report_key(g13_input_device, KEY_S, 0);
     }
+    input_sync(g13_input_device);
     /* FIXME VP 27.12.2010: Hardcoded A for every key */
     /*
     input_report_key(g13_input_device, KEY_A, 1);
@@ -124,6 +135,8 @@ static int g13_probe(struct usb_interface *intf, const struct usb_device_id *id)
     set_bit(BTN_TRIGGER_HAPPY20, g13_input_device->keybit);
     set_bit(BTN_TRIGGER_HAPPY21, g13_input_device->keybit);
     set_bit(BTN_TRIGGER_HAPPY22, g13_input_device->keybit);
+    set_bit(KEY_A, g13_input_device->keybit);
+    set_bit(KEY_S, g13_input_device->keybit);
     input_register_device_result = input_register_device(g13_input_device);
     if (input_register_device_result) {
         printk("G13: input_register_device failed: %d\n", input_register_device_result);
